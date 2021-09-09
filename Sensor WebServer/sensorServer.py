@@ -34,7 +34,30 @@ def data():
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
+
+def my_server():
+    global firstTime
+    global ThreadCount
+    global connectedClients
     
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    s.bind((HOST, PORT))
+    s.listen(5)
+    if firstTime:
+        #Inidcating the server has started
+        print("Server Started \nWaiting for clients...")
+        firstTime = False
+    while True:
+        conn, addr = s.accept() #Accepting connection requests
+        print("Connection accepted... \nConnected to", addr)
+        connectedClients.append(addr[0])
+        print("Starting new thread...")
+        ThreadCount += 1
+        print('Thread Number: ' + str(ThreadCount))
+        start_new_thread(threadedConnection, (conn, )) #Creating a new thread
+
 def threadedConnection(connection):
     global firstTime
     global data_view
@@ -75,30 +98,6 @@ def threadedConnection(connection):
             connection.sendall(encodedHall)
             time.sleep(1)
             
-def my_server():
-    global firstTime
-    global ThreadCount
-    global connectedClients
-    
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    s.bind((HOST, PORT))
-    s.listen(5)
-    if firstTime:
-        #Inidcating the server has started
-        print("Server Started \nWaiting for clients...")
-        firstTime = False
-    while True:
-        conn, addr = s.accept() #Accepting connection requests
-        print("Connection accepted... \nConnected to", addr)
-        connectedClients.append(addr[0])
-        print("Starting new thread...")
-        ThreadCount += 1
-        print('Thread Number: ' + str(ThreadCount))
-        start_new_thread(threadedConnection, (conn, )) #Creating a new thread
-    s.close() #Closing the socket
-
 def url():
     os.system('cmd /k "lt --port 5000"')
 

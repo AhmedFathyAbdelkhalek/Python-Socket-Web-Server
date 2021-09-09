@@ -1,14 +1,46 @@
+from flask import Flask, render_template
 from _thread import *
 import socket
 import encodings
 import sys
 import time
+import os
+import threading
 
 HOST = '127.0.0.1' #Host IP Address
 PORT = 65432  #Port to listen on
 ThreadCount = 0 #Thread number counter
 firstTime = True #Indicates whether its the first time to call my_server()
 connectedClients = []
+temperature = None
+humidity = None
+controlledTemp = None
+controlledHumidity = None
+data_view = """"""
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/init')
+def init():
+    my_server()
+
+@app.route('/data')
+def data():
+    global data_view
+    global temperature
+    global humidity
+    global controlledTemp
+    global controlledHumidity
+    return f"""<html><head><META HTTP-EQUIV="refresh"
+           CONTENT="1"></head><body>"""+ data_view + """</body></html>"""
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 def process_data_from_client(x):  #Function to
     x1, y1 = x.split(",")  #split incoming Data
@@ -27,7 +59,7 @@ def my_server():
     if firstTime:
         #Inidcating the server has started
         print("Server Started \nWaiting for clients...")
-        firstTime =  False
+        firstTime = False
     while True:
         conn, addr = s.accept() #Accepting connection requests
         print("Connection accepted... \nConnected to", addr)
@@ -39,6 +71,11 @@ def my_server():
         
 def threadedConnection(connection):
     global firstTime
+    global data_view
+    global temperature
+    global humidity
+    global controlledTemp
+    global controlledHumidity
     
     with connection:
         while True:
@@ -62,24 +99,30 @@ def threadedConnection(connection):
 
             # Get data from client
             data = connection.recv(1024).decode('utf-8')
-            data
             # Process the data (comma seperated value)
-            x_temperature, y_humidity = process_data_from_client(data)
+            temperature, humidity = process_data_from_client(data)
 
-            print("Temperature {}".format(x_temperature))
-            print("Humidity {}".format(y_humidity))
+            print("Temperature {}".format(temperature))
+            print("Humidity {}".format(humidity))
 
             # Calculating controlled values and sending them back to the client
-            temperature = float(x_temperature) * 1.5
-            controlledTemp = str(temperature).encode('utf-8')
+            controlledTemp = float(temperature) * 1.5
+            encodedTemp = str(temperature).encode('utf-8')
 
-            humidity = float(y_humidity) * 1.5
-            controlledHumidity = str(humidity).encode('utf-8')
+            controlledHumidity = float(humidity) * 1.5
+            encodedHumidity = str(humidity).encode('utf-8')
 
-            connection.sendall(controlledTemp)
-            connection.sendall(controlledHumidity)
+            data_view =f'''<p>Sensor temperature: {temperature} <br/>Sensor humidity:
+            {humidity} <br/> Controlled temperature: {controlledTemp}
+            <br/> Controlled humidity: {controlledHumidity}<br/><br/></p>'''+data_view
+
+            connection.sendall(encodedTemp)
+            connection.sendall(encodedHumidity)
             time.sleep(1)
 
-if __name__ == "__main__":
-    while 1:
-        my_server()
+def url():
+    os.system('cmd /k "lt --port 5000"')
+
+if __name__ == '__main__':
+    threading.Thread(target=url).start()
+    app.run(debug=False, host='0.0.0.0') #Building the Flask app

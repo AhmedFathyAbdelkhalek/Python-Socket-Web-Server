@@ -4,8 +4,6 @@ import socket
 import encodings
 import sys
 import time
-import os
-import threading
 
 HOST = '127.0.0.1' #Host IP Address
 PORT = 65432  #Port to listen on
@@ -45,6 +43,29 @@ def page_not_found(e):
 def process_data_from_client(x):  #Function to
     x1, y1 = x.split(",")  #split incoming Data
     return x1, y1
+
+def my_server():
+    global firstTime
+    global ThreadCount
+    global connectedClients
+    
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    s.bind((HOST, PORT))
+    s.listen(5)
+    if firstTime:
+        #Inidcating the server has started
+        print("Server Started \nWaiting for clients...")
+        firstTime = False
+    while True:
+        conn, addr = s.accept() #Accepting connection requests
+        print("Connection accepted... \nConnected to", addr)
+        connectedClients.append(addr[0])
+        print("Starting new thread...")
+        ThreadCount += 1
+        print('Thread Number: ' + str(ThreadCount))
+        start_new_thread(threadedConnection, (conn, )) #Creating a new thread
     
 def threadedConnection(connection):
     global firstTime
@@ -96,34 +117,6 @@ def threadedConnection(connection):
             connection.sendall(encodedTemp)
             connection.sendall(encodedHumidity)
             time.sleep(1)
-            
-def my_server():
-    global firstTime
-    global ThreadCount
-    global connectedClients
-    
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    s.bind((HOST, PORT))
-    s.listen(5)
-    if firstTime:
-        #Inidcating the server has started
-        print("Server Started \nWaiting for clients...")
-        firstTime = False
-    while True:
-        conn, addr = s.accept() #Accepting connection requests
-        print("Connection accepted... \nConnected to", addr)
-        connectedClients.append(addr[0])
-        print("Starting new thread...")
-        ThreadCount += 1
-        print('Thread Number: ' + str(ThreadCount))
-        start_new_thread(threadedConnection, (conn, )) #Creating a new thread
-    s.close() #Closing the socket
-
-def url():
-    os.system('cmd /k "lt --port 5000"')
 
 if __name__ == '__main__':
-    threading.Thread(target=url).start()
     app.run(debug=False, host='0.0.0.0') #Building the Flask app
