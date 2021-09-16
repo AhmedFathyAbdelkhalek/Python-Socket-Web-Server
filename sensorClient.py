@@ -29,7 +29,7 @@ def my_client():
 
             s.sendall(data)  #Sending the byte stream
 
-            hall = connection.recv(1024).decode('utf-8')#Receiving the 
+            hall = s.recv(1024).decode('utf-8')#Receiving the 
             print("Controlled sensor reading: "+ hall)
 
         elif str(data).lower() == "quit":
